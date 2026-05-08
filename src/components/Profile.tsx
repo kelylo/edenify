@@ -3,7 +3,6 @@ import { useApp } from '../AppContext';
 import { Bell, Shield, LogOut, Award, Zap, Target, Sparkles, Download, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { registerBibleReminderSync, unregisterBibleReminderSync } from '../services/notifications';
-import AndroidDiagnostics from './AndroidDiagnostics';
 
 const toTimeInputValue = (value: string) => {
   const normalized = String(value || '').trim().toUpperCase();
@@ -379,8 +378,6 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </section>
-
-      <AndroidDiagnostics />
 
       <section className="space-y-4">
         <h2 className={sectionTitleClass}>App Controls</h2>

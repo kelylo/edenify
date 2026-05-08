@@ -2,9 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2, Circle, Pencil, Trash2 } from 'lucide-react';
 import { SkeletonList } from './Skeleton';
-import { useInfiniteScroll } from '../lib/useInfiniteScroll';
-import { useDragAndDrop } from '../lib/useDragAndDrop';
-import { highlightSearch } from '../lib/highlightSearch';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { useDragAndDrop } from '../hooks/useDragAndDrop';
+import { highlightSearch } from '../lib/utils';
 import { cn } from '../lib/utils';
 
 export function TaskList({

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>SOUL/SYNC - Unified Prototype</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Newsreader:wght@400;500;600&display=swap" rel="stylesheet"/>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-fixed": "#151e0f",
+                        "error": "#ffb4ab",
+                        "on-surface-variant": "#c3caac",
+                        "secondary-fixed": "#ffdcbd",
+                        "tertiary": "#ffffff",
+                        "inverse-primary": "#4c6700",
+                        "on-primary": "#263500",
+                        "primary-fixed": "#b9f600",
+                        "surface": "#131313",
+                        "on-surface": "#e5e2e1",
+                        "primary": "#ffffff",
+                        "surface-container-high": "#2a2a2a",
+                        "background": "#131313",
+                        "outline": "#8d9479",
+                        "surface-container": "#201f1f",
+                        "primary-fixed-dim": "#a2d800",
+                        "on-primary-fixed": "#141f00",
+                        "secondary": "#f0bd8b"
+                    },
+                    spacing: {
+                        "sm": "16px",
+                        "md": "24px",
+                        "container-margin": "20px",
+                        "xs": "8px",
+                        "xl": "64px",
+                        "base": "4px",
+                        "lg": "40px"
+                    },
+                    fontFamily: {
+                        "geist": ["Geist", "sans-serif"],
+                        "newsreader": ["Newsreader", "serif"]
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #131313; color: #e5e2e1; font-family: 'Geist', sans-serif; }
+        .glass-card {
+            background-color: rgba(28, 31, 26, 0.4);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-active {
+            box-shadow: inset 0 0 0 1px rgba(185, 246, 0, 0.1), 0 0 64px 0 rgba(185, 246, 0, 0.05);
+        }
+        .nav-active {
+            color: #b9f600 !important;
+        }
+        .section-content { display: none; }
+        .section-content.active { display: flex; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+
+<body class="min-h-screen pb-32">
+
+    <!-- Global Top Bar -->
+    <header class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-container-margin py-4">
+        <div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden border border-white/10">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXBf0RaQtva4shlj87sxMUrARTOswYBnKw6ZIt79m2GvEJpp2lB07NDstTKca3ZbKPeh53ljyVxC4Bn8hizs4gBBVXcFOuEz6r2wCXdZsKUAbzZ--Occ5V6UEo-62FL2-ysPDsQkpQ6nIl6IE-4ETSFdqk-PuKorAYt9agZYi4Cf4V8zPOmxDtw0Xvz3N96QWy11WNy6oLwY8K729UiuWvrQ-PnQ8KmBIugfdwHKPHiT7rB9t1ncls2u_QDvZdrtBtTgE-vjJKXg" alt="Profile" class="w-full h-full object-cover">
+        </div>
+        <div class="text-[14px] font-bold tracking-[0.2em] text-primary-fixed-dim uppercase">SOUL/SYNC</div>
+        <button class="w-10 h-10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary">notifications</span>
+        </button>
+    </header>
+
+    <main class="pt-[100px] px-container-margin max-w-2xl mx-auto w-full">
+
+        <!-- SECTION: HUB (Home) -->
+        <div id="section-hub" class="section-content active flex-col gap-lg">
+            <section class="flex flex-col gap-xs">
+                <h1 class="text-3xl font-newsreader text-primary">The Daily Feed</h1>
+                <p class="text-on-surface-variant">Your spiritual and physical alignment for today.</p>
+            </section>
+
+            <div class="glass-card rounded-2xl p-md flex flex-col gap-sm border-l-4 border-l-primary-fixed">
+                <span class="text-[10px] font-bold tracking-widest text-primary-fixed uppercase">Morning Focus</span>
+                <h3 class="text-xl font-newsreader">"The light shines in the darkness, and the darkness has not overcome it."</h3>
+                <p class="text-sm text-on-surface-variant">— John 1:5</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-sm">
+                <div class="glass-card rounded-2xl p-md flex flex-col gap-xs">
+                    <span class="material-symbols-outlined text-primary-fixed">wb_twilight</span>
+                    <span class="text-xs font-bold text-on-surface-variant">FAJR</span>
+                    <span class="text-lg font-bold">Completed</span>
+                </div>
+                <div class="glass-card rounded-2xl p-md flex flex-col gap-xs">
+                    <span class="material-symbols-outlined text-secondary">water_drop</span>
+                    <span class="text-xs font-bold text-on-surface-variant">HYDRATION</span>
+                    <span class="text-lg font-bold">1.2 / 3.0L</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: HABITS -->
+        <div id="section-habits" class="section-content flex-col gap-lg">
+            <section class="flex flex-col gap-xs">
+                <h1 class="text-3xl font-newsreader text-primary">Identity Anchors</h1>
+                <p class="text-on-surface-variant">Reinforce your state of being.</p>
+            </section>
+
+            <!-- Identity 1 -->
+            <div class="flex flex-col gap-md">
+                <div class="flex items-center gap-sm">
+                    <div class="w-1 h-6 bg-primary-fixed rounded-full"></div>
+                    <h2 class="text-sm font-bold uppercase tracking-widest">I am someone who prays</h2>
+                </div>
+                
+                <div class="glass-card rounded-[24px] p-md flex flex-col gap-md glow-active" onclick="toggleHabit(this)">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold">Fajr Protocol</h3>
+                            <p class="text-[10px] font-bold text-on-surface-variant uppercase">05:30 AM</p>
+                        </div>
+                        <span class="material-symbols-outlined text-primary-fixed text-3xl transition-all habit-icon">check_circle</span>
+                    </div>
+                    <div class="flex items-center gap-sm">
+                        <div class="flex-1 bg-surface-container h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-primary-fixed w-[100%] h-full"></div>
+                        </div>
+                        <span class="text-[10px] font-bold text-primary-fixed uppercase">12 DAY STREAK</span>
+                    </div>
+                </div>
+
+                <div class="glass-card rounded-[24px] p-md flex flex-col gap-md opacity-70" onclick="toggleHabit(this)">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-lg font-semibold">Dhuhr Alignment</h3>
+                            <p class="text-[10px] font-bold text-on-surface-variant uppercase">01:15 PM</p>
+                        </div>
+                        <span class="material-symbols-outlined text-outline-variant text-3xl habit-icon">radio_button_unchecked</span>
+                    </div>
+                    <div class="flex items-center gap-sm">
+                        <div class="flex-1 bg-surface-container h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-outline-variant w-[0%] h-full"></div>
+                        </div>
+                        <span class="text-[10px] font-bold text-on-surface-variant uppercase">PENDING</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: THE WORD -->
+        <div id="section-word" class="section-content flex-col gap-lg">
+            <section class="text-center space-y-xs">
+                <div class="text-[10px] font-bold text-primary-fixed-dim tracking-widest uppercase">Day 12 • Morning</div>
+                <h1 class="text-5xl font-newsreader text-primary">John 1</h1>
+            </section>
+
+            <section class="glass-card rounded-[32px] p-md md:p-lg relative overflow-hidden">
+                <div class="space-y-md text-on-surface font-newsreader text-[20px] leading-[1.8]">
+                    <p><sup class="text-primary-fixed-dim text-xs mr-2">1</sup>In the beginning was the Word, and the Word was with God, and the Word was God. <sup class="text-primary-fixed-dim text-xs mx-2">2</sup>He was with God in the beginning.</p>
+                    <p><sup class="text-primary-fixed-dim text-xs mr-2">3</sup>Through him all things were made; without him nothing was made that has been made.</p>
+                    <p><sup class="text-primary-fixed-dim text-xs mr-2">4</sup>In him was life, and that life was the light of all mankind. <sup class="text-primary-fixed-dim text-xs mx-2">5</sup>The light shines in the darkness, and the darkness has not overcome it.</p>
+                </div>
+            </section>
+
+            <div class="flex gap-sm">
+                <button class="flex-1 bg-primary-fixed text-on-primary-fixed py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+                    Mark Complete <span class="material-symbols-outlined">check</span>
+                </button>
+                <button class="w-16 h-16 glass-card rounded-2xl flex items-center justify-center">
+                    <span class="material-symbols-outlined">headphones</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Unified Bottom Nav -->
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full bg-surface-variant/40 backdrop-blur-2xl border border-white/10 p-2 flex justify-around items-center z-50">
+        <button onclick="navTo('hub', this)" class="nav-btn p-4 rounded-full transition-all nav-active">
+            <span class="material-symbols-outlined fill">auto_awesome</span>
+        </button>
+        <button onclick="navTo('habits', this)" class="nav-btn p-4 rounded-full transition-all text-on-surface-variant">
+            <span class="material-symbols-outlined">architecture</span>
+        </button>
+        <button onclick="navTo('word', this)" class="nav-btn p-4 rounded-full transition-all text-on-surface-variant">
+            <span class="material-symbols-outlined">menu_book</span>
+        </button>
+        <button class="nav-btn p-4 rounded-full transition-all text-on-surface-variant">
+            <span class="material-symbols-outlined">account_circle</span>
+        </button>
+    </nav>
+
+    <script>
+        function navTo(sectionId, btn) {
+            // Hide all sections
+            document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+            // Show target section
+            document.getElementById('section-' + sectionId).classList.add('active');
+            
+            // Update Nav UI
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('nav-active');
+                b.classList.add('text-on-surface-variant');
+            });
+            btn.classList.add('nav-active');
+            btn.classList.remove('text-on-surface-variant');
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleHabit(card) {
+            const icon = card.querySelector('.habit-icon');
+            const isDone = icon.innerText === 'check_circle';
+            
+            if (isDone) {
+                icon.innerText = 'radio_button_unchecked';
+                icon.classList.remove('text-primary-fixed');
+                icon.classList.add('text-outline-variant');
+                card.classList.add('opacity-70');
+                card.classList.remove('glow-active');
+            } else {
+                icon.innerText = 'check_circle';
+                icon.classList.add('text-primary-fixed');
+                icon.classList.remove('text-outline-variant');
+                card.classList.remove('opacity-70');
+                card.classList.add('glow-active');
+            }
+        }
+    </script>
+</body>
+</html>
