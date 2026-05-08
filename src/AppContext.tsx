@@ -1225,33 +1225,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ? Math.max(1, Number(current.currentStreak || 0) + 1)
         : 1;
 
-      // Only advance if there is a next day available
-      if (nextHighest < totalDays) {
-        const nextDay = nextHighest + 1;
-        const nextReading = await getDayReading(nextDay);
-        setBibleReading((prev) => ({
-          ...prev,
-          totalDays,
-          day: nextDay,
-          highestCompletedDay: nextHighest,
-          passage: nextReading.passage,
-          text: nextReading.text,
-          completed: false,
-          lastCompletedDate: today,
-          currentStreak: nextStreak,
-        }));
-      } else {
-        // Last day: just mark as completed, don't advance
-        setBibleReading((prev) => ({
-          ...prev,
-          totalDays,
-          day: completedDay,
-          highestCompletedDay: nextHighest,
-          completed: true,
-          lastCompletedDate: today,
-          currentStreak: nextStreak,
-        }));
-      }
+      // Mark as completed but stay on the same day (don't auto-advance)
+      setBibleReading((prev) => ({
+        ...prev,
+        totalDays,
+        day: completedDay,
+        highestCompletedDay: nextHighest,
+        completed: true,
+        lastCompletedDate: today,
+        currentStreak: nextStreak,
+      }));
       return;
     }
 
