@@ -22,6 +22,9 @@ import { LayerId, Task } from '../types';
 import { AnimatePresence, motion } from 'motion/react';
 import Focus from './Focus';
 import { BibleReadingUI } from './BibleReadingUI';
+import { BibleSection } from './BibleSection';
+import { useTaskEditor } from '../hooks/useTaskEditor';
+import { useBibleReader } from '../hooks/useBibleReader';
 
 type InteractionHealthEvent = {
   id: string;
@@ -85,7 +88,6 @@ const Home: React.FC = () => {
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [loadingBible, setLoadingBible] = useState(false);
 
-  const [showScripturePage, setShowScripturePage] = useState(false);
   const [showFocusPage, setShowFocusPage] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
@@ -93,43 +95,19 @@ const Home: React.FC = () => {
   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
   const [focusedTaskId, setFocusedTaskId] = useState<string | null>(null);
 
-    const [readingSuggestion, setReadingSuggestion] = useState('');
-    const [scripturePages, setScripturePages] = useState<BibleVerse[][]>([]);
-    const [scripturePageLabels, setScripturePageLabels] = useState<string[]>([]);
-    const [scripturePageIndex, setScripturePageIndex] = useState(0);
-    const [loadingScriptureText, setLoadingScriptureText] = useState(false);
-  const [isScriptureFullscreen, setIsScriptureFullscreen] = useState(false);
-  const [isReadingScriptureAloud, setIsReadingScriptureAloud] = useState(false);
-  const [showReflectionComposer, setShowReflectionComposer] = useState(false);
-  const [reflectionDraft, setReflectionDraft] = useState('');
+  // Bible reader hook - consolidates all scripture state
+  const [bibleReaderState, bibleReaderActions] = useBibleReader();
 
-  const [newTaskName, setNewTaskName] = useState('');
-  const [newTaskLayer, setNewTaskLayer] = useState<LayerId>('general');
-  const [newTaskPriority, setNewTaskPriority] = useState<'A' | 'B' | 'C' | 'D' | 'E'>('C');
-  const [newTaskRepeat, setNewTaskRepeat] = useState<'once' | 'daily' | 'weekly'>('once');
-  const [newTaskTime, setNewTaskTime] = useState(() => getRoundedCurrentTime());
-  const [newTaskTimeFormat, setNewTaskTimeFormat] = useState<'12' | '24'>('24');
-  const [newTaskHourInput, setNewTaskHourInput] = useState(() => parseTimeToEditor(getRoundedCurrentTime()).hour24);
-  const [newTaskMinuteInput, setNewTaskMinuteInput] = useState(() => parseTimeToEditor(getRoundedCurrentTime()).minute);
-  const [newTaskPeriod, setNewTaskPeriod] = useState<'AM' | 'PM'>(() => parseTimeToEditor(getRoundedCurrentTime()).period);
-  const [newTaskDate, setNewTaskDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [newTaskAlarmEnabled, setNewTaskAlarmEnabled] = useState(true);
-  const [newTaskPreferredMusic, setNewTaskPreferredMusic] = useState(() => {
-    const playlist = user?.preferences.customFocusPlaylistNames || [];
-    if (playlist.length > 0 && playlist[0]) return playlist[0];
-    if (user?.preferences.customFocusSongName) return user.preferences.customFocusSongName;
-    return 'Instrumental Warmth';
-  });
-  const [newTaskCustomAlarmName, setNewTaskCustomAlarmName] = useState('');
-  const [newTaskCustomAlarmDataUrl, setNewTaskCustomAlarmDataUrl] = useState('');
-  const [newTaskDuration, setNewTaskDuration] = useState(25); // default 25 minutes
+  // Task editor hook - consolidates all task creation/editing state
+  const [taskEditorState, taskEditorActions] = useTaskEditor();
+
+  const [readingSuggestion, setReadingSuggestion] = useState('');
+  const [loadingScriptureText, setLoadingScriptureText] = useState(false);
   const [isGeneratingTask, setIsGeneratingTask] = useState(false);
   const [isTaskPreviewPlaying, setIsTaskPreviewPlaying] = useState(false);
-  const [quickAddError, setQuickAddError] = useState('');
   const [alarmTask, setAlarmTask] = useState<Task | null>(null);
   const [alarmOpen, setAlarmOpen] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState('');
-  const scriptureAudioRef = useRef<HTMLAudioElement | null>(null);
   const scriptureAudioUrlRef = useRef<string | null>(null);
   const [reminderFeed, setReminderFeed] = useState<Array<{ id: string; title: string; detail: string; createdAt: string }>>([]);
   const [toastReminder, setToastReminder] = useState<{ id: string; title: string; detail: string } | null>(null);
@@ -143,11 +121,6 @@ const Home: React.FC = () => {
   const [searchingBible, setSearchingBible] = useState(false);
   const [bibleSearchLabel, setBibleSearchLabel] = useState('');
   const [bibleSearchResults, setBibleSearchResults] = useState<BibleVerse[]>([]);
-  const [editingSearchTaskId, setEditingSearchTaskId] = useState<string | null>(null);
-  const [editingSearchTaskName, setEditingSearchTaskName] = useState('');
-  const [editingSearchTaskTime, setEditingSearchTaskTime] = useState('');
-  const [editingSearchTaskRepeat, setEditingSearchTaskRepeat] = useState<'once' | 'daily' | 'weekly'>('once');
-  const [editingSearchTaskPriority, setEditingSearchTaskPriority] = useState<'A' | 'B' | 'C' | 'D' | 'E'>('C');
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const [detailTaskName, setDetailTaskName] = useState('');
   const [detailTaskTime, setDetailTaskTime] = useState('');
@@ -162,7 +135,7 @@ const Home: React.FC = () => {
   const [googleCalendarBusy, setGoogleCalendarBusy] = useState(false);
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState(() => isGoogleCalendarConnected(user?.email));
   const [googleCalendarAccountEmail, setGoogleCalendarAccountEmail] = useState('');
-  const isSubPageOpen = showScripturePage || showFocusPage;
+  const isSubPageOpen = bibleReaderState.showScripturePage || showFocusPage;
 
   const todayDateKey = (() => {
     const now = new Date();
@@ -197,8 +170,8 @@ const Home: React.FC = () => {
   const accountCacheKey = String(user?.email || user?.id || '').trim().toLowerCase();
   const homePrefsStorageKey = accountCacheKey ? `edenify_home_prefs_${accountCacheKey}` : 'edenify_home_prefs_guest';
 
-  const activeScripturePage = scripturePages[scripturePageIndex] || [];
-  const activeScriptureLabel = scripturePageLabels[scripturePageIndex] || bibleReading.passage;
+  const activeScripturePage = bibleReaderState.pages[bibleReaderState.pageIndex] || [];
+  const activeScriptureLabel = bibleReaderState.pageLabels[bibleReaderState.pageIndex] || bibleReading.passage;
 
   const recordInteractionEvent = useCallback((event: Omit<InteractionHealthEvent, 'id' | 'at'>) => {
     setInteractionEvents((prev) => [
@@ -239,17 +212,17 @@ const Home: React.FC = () => {
         bibleReminderTime: string;
       }>;
 
-      if (parsed.taskHour) setNewTaskHourInput(String(parsed.taskHour).slice(0, 2));
-      if (parsed.taskMinute) setNewTaskMinuteInput(String(parsed.taskMinute).slice(0, 2));
-      if (parsed.taskPeriod === 'AM' || parsed.taskPeriod === 'PM') setNewTaskPeriod(parsed.taskPeriod);
-      if (parsed.taskTimeFormat === '12' || parsed.taskTimeFormat === '24') setNewTaskTimeFormat(parsed.taskTimeFormat);
+      if (parsed.taskHour) taskEditorActions.setHourInput(String(parsed.taskHour).slice(0, 2));
+      if (parsed.taskMinute) taskEditorActions.setMinuteInput(String(parsed.taskMinute).slice(0, 2));
+      if (parsed.taskPeriod === 'AM' || parsed.taskPeriod === 'PM') taskEditorActions.setPeriod(parsed.taskPeriod);
+      if (parsed.taskTimeFormat === '12' || parsed.taskTimeFormat === '24') taskEditorActions.setTimeFormat(parsed.taskTimeFormat);
       if (Number.isFinite(Number(parsed.taskDuration))) {
         const boundedDuration = Math.max(5, Math.min(300, Number(parsed.taskDuration)));
-        setNewTaskDuration(boundedDuration);
+        taskEditorActions.setDuration(boundedDuration);
       }
 
-      if (parsed.lastAlarmSongName) setNewTaskCustomAlarmName(parsed.lastAlarmSongName);
-      if (parsed.lastAlarmSongDataUrl) setNewTaskCustomAlarmDataUrl(parsed.lastAlarmSongDataUrl);
+      if (parsed.lastAlarmSongName) taskEditorActions.setCustomAlarmName(parsed.lastAlarmSongName);
+      if (parsed.lastAlarmSongDataUrl) taskEditorActions.setCustomAlarmDataUrl(parsed.lastAlarmSongDataUrl);
 
       if (user && (parsed.lastAlarmSongName || parsed.lastAlarmSongDataUrl || parsed.bibleReminderTime)) {
         setUser({
@@ -270,15 +243,15 @@ const Home: React.FC = () => {
   useEffect(() => {
     if (!accountCacheKey) return;
 
-    const safeAudioDataUrl = (newTaskCustomAlarmDataUrl || '').length <= 4_500_000 ? newTaskCustomAlarmDataUrl : '';
+    const safeAudioDataUrl = (taskEditorState.customAlarmDataUrl || '').length <= 4_500_000 ? taskEditorState.customAlarmDataUrl : '';
     const payload = {
-      lastAlarmSongName: newTaskCustomAlarmName || user?.preferences.lastAlarmSongName || '',
+      lastAlarmSongName: taskEditorState.customAlarmName || user?.preferences.lastAlarmSongName || '',
       lastAlarmSongDataUrl: safeAudioDataUrl || user?.preferences.lastAlarmSongDataUrl || '',
-      taskHour: newTaskHourInput,
-      taskMinute: newTaskMinuteInput,
-      taskPeriod: newTaskPeriod,
-      taskTimeFormat: newTaskTimeFormat,
-      taskDuration: newTaskDuration,
+      taskHour: taskEditorState.hourInput,
+      taskMinute: taskEditorState.minuteInput,
+      taskPeriod: taskEditorState.period,
+      taskTimeFormat: taskEditorState.timeFormat,
+      taskDuration: taskEditorState.duration,
       bibleReminderTime: user?.preferences.bibleReminderTime || '06:30 AM',
     };
 
@@ -290,23 +263,23 @@ const Home: React.FC = () => {
   }, [
     accountCacheKey,
     homePrefsStorageKey,
-    newTaskCustomAlarmName,
-    newTaskCustomAlarmDataUrl,
-    newTaskHourInput,
-    newTaskMinuteInput,
-    newTaskPeriod,
-    newTaskTimeFormat,
-    newTaskDuration,
+    taskEditorState.customAlarmName,
+    taskEditorState.customAlarmDataUrl,
+    taskEditorState.hourInput,
+    taskEditorState.minuteInput,
+    taskEditorState.period,
+    taskEditorState.timeFormat,
+    taskEditorState.duration,
     user?.preferences.bibleReminderTime,
     user?.preferences.lastAlarmSongName,
     user?.preferences.lastAlarmSongDataUrl,
   ]);
 
   const stopScriptureReading = useCallback(() => {
-    if (scriptureAudioRef.current) {
-      scriptureAudioRef.current.pause();
-      scriptureAudioRef.current.currentTime = 0;
-      scriptureAudioRef.current = null;
+    if (bibleReaderActions.getAudioRef().current) {
+      bibleReaderActions.getAudioRef().current.pause();
+      bibleReaderActions.getAudioRef().current.currentTime = 0;
+      bibleReaderActions.getAudioRef().current = null;
     }
 
     if (scriptureAudioUrlRef.current) {
@@ -314,7 +287,7 @@ const Home: React.FC = () => {
       scriptureAudioUrlRef.current = null;
     }
 
-    setIsReadingScriptureAloud(false);
+    bibleReaderActions.setIsReadingAloud(false);
   }, []);
 
   const readScriptureAloud = useCallback(async () => {
@@ -332,7 +305,7 @@ const Home: React.FC = () => {
     }
 
     stopScriptureReading();
-    setIsReadingScriptureAloud(true);
+    bibleReaderActions.setIsReadingAloud(true);
     setNotificationStatus('Sending scripture to Gemini TTS...');
 
     try {
@@ -362,37 +335,37 @@ const Home: React.FC = () => {
       scriptureAudioUrlRef.current = audioUrl;
 
       const audio = new Audio(audioUrl);
-      scriptureAudioRef.current = audio;
+      bibleReaderActions.getAudioRef().current = audio;
 
       audio.onended = () => {
-        scriptureAudioRef.current = null;
+        bibleReaderActions.getAudioRef().current = null;
         if (scriptureAudioUrlRef.current) {
           URL.revokeObjectURL(scriptureAudioUrlRef.current);
           scriptureAudioUrlRef.current = null;
         }
-        setIsReadingScriptureAloud(false);
+        bibleReaderActions.setIsReadingAloud(false);
         setNotificationStatus('Read aloud finished.');
       };
 
       audio.onerror = () => {
-        scriptureAudioRef.current = null;
+        bibleReaderActions.getAudioRef().current = null;
         if (scriptureAudioUrlRef.current) {
           URL.revokeObjectURL(scriptureAudioUrlRef.current);
           scriptureAudioUrlRef.current = null;
         }
-        setIsReadingScriptureAloud(false);
+        bibleReaderActions.setIsReadingAloud(false);
         setNotificationStatus('Read aloud failed. Please try again.');
       };
 
       await audio.play();
       setNotificationStatus('Reading aloud (Gemini TTS).');
     } catch (error: any) {
-      scriptureAudioRef.current = null;
+      bibleReaderActions.getAudioRef().current = null;
       if (scriptureAudioUrlRef.current) {
         URL.revokeObjectURL(scriptureAudioUrlRef.current);
         scriptureAudioUrlRef.current = null;
       }
-      setIsReadingScriptureAloud(false);
+      bibleReaderActions.setIsReadingAloud(false);
       setNotificationStatus(error?.message || 'Read aloud failed. Please try again.');
     }
   }, [activeScriptureLabel, activeScripturePage, bibleReading.text, stopScriptureReading]);
@@ -450,7 +423,7 @@ const Home: React.FC = () => {
 
   const [edenTemplatePool, setEdenTemplatePool] = useState<EdenTemplate[]>([]);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const debouncedTaskName = useDebouncedValue(newTaskName.trim(), 220);
+  const debouncedTaskName = useDebouncedValue(taskEditorState.name.trim(), 220);
 
   const realtimeTemplateSuggestions = useMemo(() => {
     const query = debouncedTaskName.trim();
@@ -458,7 +431,7 @@ const Home: React.FC = () => {
 
     const suggestions = getEdenTypingSuggestions({
       tasks,
-      layerId: newTaskLayer,
+      layerId: taskEditorState.layer,
       intent: query,
       mostRepeated: user?.preferences.mostRepeatedTasks?.map((entry) => ({
         name: entry.name,
@@ -469,7 +442,7 @@ const Home: React.FC = () => {
     });
 
     return suggestions.slice(0, 8);
-  }, [debouncedTaskName, newTaskLayer, tasks, user?.preferences.mostRepeatedTasks]);
+  }, [debouncedTaskName, taskEditorState.layer, tasks, user?.preferences.mostRepeatedTasks]);
 
   useEffect(() => {
     if (showQuickAdd) return;
@@ -477,13 +450,13 @@ const Home: React.FC = () => {
     setEdenTemplatePool([]);
     const defaultAlarm = getDefaultAlarmFromPreferences();
     if (defaultAlarm) {
-      setNewTaskPreferredMusic(defaultAlarm.name);
-      setNewTaskCustomAlarmName(defaultAlarm.name);
-      setNewTaskCustomAlarmDataUrl(defaultAlarm.dataUrl);
+      taskEditorActions.setPreferredMusic(defaultAlarm.name);
+      taskEditorActions.setCustomAlarmName(defaultAlarm.name);
+      taskEditorActions.setCustomAlarmDataUrl(defaultAlarm.dataUrl);
     } else {
-      setNewTaskPreferredMusic('');
-      setNewTaskCustomAlarmName('');
-      setNewTaskCustomAlarmDataUrl('');
+      taskEditorActions.setPreferredMusic('');
+      taskEditorActions.setCustomAlarmName('');
+      taskEditorActions.setCustomAlarmDataUrl('');
     }
   }, [favoriteFocusTrack, showQuickAdd, user?.preferences.lastAlarmSongName, user?.preferences.lastAlarmSongDataUrl]);
 
@@ -616,7 +589,7 @@ const Home: React.FC = () => {
     setAlarmTask(null);
     setShowQuickAdd(false);
     setShowFocusPage(false);
-    setShowScripturePage(false);
+    bibleReaderActions.setShowScripturePage(false);
     setNotificationStatus(`${alarmTask.name} opened in Edenify.`);
   }, [alarmTask]);
 
@@ -645,10 +618,10 @@ const Home: React.FC = () => {
   }, [stopScriptureReading]);
 
   useEffect(() => {
-    if (!showScripturePage) {
+    if (!bibleReaderState.showScripturePage) {
       stopScriptureReading();
     }
-  }, [showScripturePage, stopScriptureReading]);
+  }, [bibleReaderState.showScripturePage, stopScriptureReading]);
 
   const requestNotificationPermission = async (withFeedback: boolean) => {
     if (!('Notification' in window)) {
@@ -881,34 +854,34 @@ const Home: React.FC = () => {
   }, [normalizedSearch, searchDomain, searchQuery, showGlobalSearch]);
 
   const openTaskEditorFromSearch = (task: Task) => {
-    setEditingSearchTaskId(task.id);
-    setEditingSearchTaskName(task.name);
-    setEditingSearchTaskTime(task.time);
-    setEditingSearchTaskRepeat(task.repeat || 'once');
-    setEditingSearchTaskPriority(task.priority);
+    taskEditorActions.setEditingSearchTaskId(task.id);
+    taskEditorActions.setEditingSearchTaskName(task.name);
+    taskEditorActions.setEditingSearchTaskTime(task.time);
+    taskEditorActions.setEditingSearchTaskRepeat(task.repeat || 'once');
+    taskEditorActions.setEditingSearchTaskPriority(task.priority);
   };
 
   const saveTaskEditorFromSearch = () => {
-    if (!editingSearchTaskId) {
+    if (!taskEditorState.editingSearchTaskId) {
       reportActionBlocked('search-task-save', 'No task is currently selected for editing.');
       return;
     }
 
-    const normalizedTime = parseAnyTime(editingSearchTaskTime);
+    const normalizedTime = parseAnyTime(taskEditorState.editingSearchTaskTime);
     if (!normalizedTime) {
       setNotificationStatus('Please enter a valid time for task edit (HH:MM or H:MM AM/PM).');
       reportActionBlocked('search-task-save', 'Invalid task time in search editor.', false);
       return;
     }
 
-    updateTask(editingSearchTaskId, {
-      name: editingSearchTaskName.trim() || 'Untitled task',
+    updateTask(taskEditorState.editingSearchTaskId, {
+      name: taskEditorState.editingSearchTaskName.trim() || 'Untitled task',
       time: normalizedTime,
-      repeat: editingSearchTaskRepeat,
-      priority: editingSearchTaskPriority,
+      repeat: taskEditorState.editingSearchTaskRepeat,
+      priority: taskEditorState.editingSearchTaskPriority,
     });
 
-    setEditingSearchTaskId(null);
+    taskEditorActions.setEditingSearchTaskId(null);
     setNotificationStatus('Task updated from search.');
     reportActionSuccess('search-task-save', 'Task updated from global search.');
   };
@@ -1050,8 +1023,8 @@ const Home: React.FC = () => {
   };
 
   const previewUploadedReminder = () => {
-    if (!newTaskCustomAlarmDataUrl) {
-      setQuickAddError('Upload a reminder song first.');
+    if (!taskEditorState.customAlarmDataUrl) {
+      taskEditorActions.setQuickAddError('Upload a reminder song first.');
       reportActionBlocked('quick-add-preview-reminder', 'Upload a reminder song first.', false);
       return;
     }
@@ -1060,13 +1033,13 @@ const Home: React.FC = () => {
   };
 
   const previewCustomReminder = () => {
-    if (!newTaskCustomAlarmDataUrl) {
+    if (!taskEditorState.customAlarmDataUrl) {
       reportActionBlocked('quick-add-preview-reminder', 'No custom reminder audio is available.', false);
       return;
     }
     stopTaskPreview();
 
-    const media = new Audio(newTaskCustomAlarmDataUrl);
+    const media = new Audio(taskEditorState.customAlarmDataUrl);
     media.volume = 0.85;
     media.play().then(() => {
       setIsTaskPreviewPlaying(true);
@@ -1399,7 +1372,7 @@ const Home: React.FC = () => {
   }, [user?.id, user?.preferences.notifications.dailyScripture]);
 
   useEffect(() => {
-    if (!showScripturePage) return;
+    if (!bibleReaderState.showScripturePage) return;
 
     const loadFullPassage = async () => {
       setLoadingScriptureText(true);
@@ -1470,51 +1443,51 @@ const Home: React.FC = () => {
         }
 
         if (parsedPages.length > 0) {
-          setScripturePageIndex(0);
-          setScripturePages(parsedPages);
-          setScripturePageLabels(labels);
+          bibleReaderActions.setScripturePageIndex(0);
+          bibleReaderActions.setScripturePages(parsedPages);
+          bibleReaderActions.setScripturePageLabels(labels);
           return;
         }
 
         const fallback = await searchVerses(bibleReading.passage.split(' ')[0], 40);
-        setScripturePageIndex(0);
-        setScripturePages(fallback.length > 0 ? [fallback] : []);
-        setScripturePageLabels([bibleReading.passage]);
+        bibleReaderActions.setScripturePageIndex(0);
+        bibleReaderActions.setScripturePages(fallback.length > 0 ? [fallback] : []);
+        bibleReaderActions.setScripturePageLabels([bibleReading.passage]);
       } catch (error) {
         console.error('Could not load ASV passage', error);
-        setScripturePageIndex(0);
-        setScripturePages([]);
-        setScripturePageLabels([]);
+        bibleReaderActions.setScripturePageIndex(0);
+        bibleReaderActions.setScripturePages([]);
+        bibleReaderActions.setScripturePageLabels([]);
       } finally {
         setLoadingScriptureText(false);
       }
     };
 
     loadFullPassage();
-  }, [showScripturePage, bibleReading.passage, bibleReading.text]);
+  }, [bibleReaderState.showScripturePage, bibleReading.passage, bibleReading.text]);
 
   useEffect(() => {
-    if (!showScripturePage) {
-      setShowReflectionComposer(false);
-      setIsScriptureFullscreen(false);
-      setScripturePageIndex(0);
-      setScripturePages([]);
-      setScripturePageLabels([]);
+    if (!bibleReaderState.showScripturePage) {
+      bibleReaderActions.setShowReflectionComposer(false);
+      bibleReaderActions.toggleFullscreen(false);
+      bibleReaderActions.setScripturePageIndex(0);
+      bibleReaderActions.setScripturePages([]);
+      bibleReaderActions.setScripturePageLabels([]);
       return;
     }
 
-    setReflectionDraft(bibleReading.reflection || '');
+    bibleReaderActions.setReflectionDraft(bibleReading.reflection || '');
 
     const handleFullscreenChange = () => {
       const currentFullscreen = document.fullscreenElement;
-      setIsScriptureFullscreen(Boolean(currentFullscreen));
+      bibleReaderActions.toggleFullscreen(Boolean(currentFullscreen));
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [showScripturePage, bibleReading.reflection]);
+  }, [bibleReaderState.showScripturePage, bibleReading.reflection]);
 
   const toggleScriptureFullscreen = async () => {
     try {
@@ -1549,11 +1522,11 @@ const Home: React.FC = () => {
         // no-op
       }
     }
-    setShowScripturePage(false);
+    bibleReaderActions.setShowScripturePage(false);
   };
 
   const openReflectionComposer = () => {
-    setShowReflectionComposer(true);
+    bibleReaderActions.setShowReflectionComposer(true);
     window.setTimeout(() => {
       reflectionComposerRef.current?.focus();
       reflectionComposerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1561,7 +1534,7 @@ const Home: React.FC = () => {
   };
 
   const saveReflection = () => {
-    const content = reflectionDraft.trim();
+    const content = bibleReaderState.reflectionDraft.trim();
     if (!content) {
       setNotificationStatus('Write a short reflection before saving.');
       return;
@@ -1574,7 +1547,7 @@ const Home: React.FC = () => {
       content: `Day ${bibleReading.day} • ${bibleReading.passage}\n${content}`,
     });
 
-    setShowReflectionComposer(false);
+    bibleReaderActions.setShowReflectionComposer(false);
     setNotificationStatus('Reflection saved to your journal.');
   };
 
@@ -1614,55 +1587,55 @@ const Home: React.FC = () => {
   };
 
   const handleQuickAddTask = () => {
-    const trimmedName = newTaskName.trim();
+    const trimmedName = taskEditorState.name.trim();
     if (!trimmedName) {
-      setQuickAddError('Task name is required.');
+      taskEditorActions.setQuickAddError('Task name is required.');
       reportActionBlocked('quick-add-create-task', 'Task name is required.', false);
       return;
     }
 
-    if (newTaskRepeat === 'weekly' && !newTaskDate) {
-      setQuickAddError('Please choose a calendar date for weekly tasks.');
+    if (taskEditorState.repeat === 'weekly' && !taskEditorState.date) {
+      taskEditorActions.setQuickAddError('Please choose a calendar date for weekly tasks.');
       reportActionBlocked('quick-add-create-task', 'Calendar date is required for weekly tasks.', false);
       return;
     }
 
-    const resolvedTime = buildTimeFromEditor(newTaskTimeFormat, newTaskHourInput, newTaskMinuteInput, newTaskPeriod);
+    const resolvedTime = buildTimeFromEditor(taskEditorState.timeFormat, taskEditorState.hourInput, taskEditorState.minuteInput, taskEditorState.period);
     if (!resolvedTime) {
-      setQuickAddError('Please enter a valid time (hour and minute).');
+      taskEditorActions.setQuickAddError('Please enter a valid time (hour and minute).');
       reportActionBlocked('quick-add-create-task', 'Task time is invalid.', false);
       return;
     }
 
-    const baseDate = newTaskRepeat === 'weekly' ? new Date(`${newTaskDate}T00:00:00`) : new Date();
+    const baseDate = taskEditorState.repeat === 'weekly' ? new Date(`${taskEditorState.date}T00:00:00`) : new Date();
     const dueDate = Number.isNaN(baseDate.getTime()) ? new Date() : baseDate;
 
     const draftTask: Task = {
       id: `task-${Date.now()}`,
       name: trimmedName,
-      layerId: newTaskLayer,
-      priority: newTaskPriority,
-      repeat: newTaskRepeat,
+      layerId: taskEditorState.layer,
+      priority: taskEditorState.priority,
+      repeat: taskEditorState.repeat,
       time: resolvedTime,
       completed: false,
       date: dueDate.toISOString(),
-      alarmEnabled: newTaskAlarmEnabled,
-      preferredMusic: newTaskPreferredMusic || newTaskCustomAlarmName || 'Uploaded Song',
-      customAlarmAudioName: newTaskCustomAlarmName || 'Uploaded Song',
-      customAlarmAudioDataUrl: newTaskCustomAlarmDataUrl || undefined,
-      estimatedDuration: newTaskDuration,
+      alarmEnabled: taskEditorState.alarmEnabled,
+      preferredMusic: taskEditorState.preferredMusic || taskEditorState.customAlarmName || 'Uploaded Song',
+      customAlarmAudioName: taskEditorState.customAlarmName || 'Uploaded Song',
+      customAlarmAudioDataUrl: taskEditorState.customAlarmDataUrl || undefined,
+      estimatedDuration: taskEditorState.duration,
       durationStartedAt: new Date().toISOString(),
     };
 
     const due = parseTaskDueDate(draftTask);
     if (!due) {
-      setQuickAddError('Could not understand this time. Please check hour/minute values.');
+      taskEditorActions.setQuickAddError('Could not understand this time. Please check hour/minute values.');
       reportActionBlocked('quick-add-create-task', 'Task due time could not be parsed.', false);
       return;
     }
 
-    if (newTaskRepeat === 'once' && due.getTime() <= Date.now()) {
-      setQuickAddError('Please choose a future time. Past times cannot be used.');
+    if (taskEditorState.repeat === 'once' && due.getTime() <= Date.now()) {
+      taskEditorActions.setQuickAddError('Please choose a future time. Past times cannot be used.');
       reportActionBlocked('quick-add-create-task', 'One-time task cannot be scheduled in the past.', false);
       return;
     }
@@ -1670,41 +1643,41 @@ const Home: React.FC = () => {
     addTask(draftTask);
 
     // Save last used alarm song for future task creation
-    if (newTaskCustomAlarmDataUrl && newTaskCustomAlarmName && user) {
+    if (taskEditorState.customAlarmDataUrl && taskEditorState.customAlarmName && user) {
       setUser({
         ...user,
         preferences: {
           ...user.preferences,
-          lastAlarmSongName: newTaskCustomAlarmName,
-          lastAlarmSongDataUrl: newTaskCustomAlarmDataUrl,
+          lastAlarmSongName: taskEditorState.customAlarmName,
+          lastAlarmSongDataUrl: taskEditorState.customAlarmDataUrl,
         },
       });
     }
 
-    setNewTaskName('');
-    setNewTaskLayer('general');
-    setNewTaskPriority('C');
-    setNewTaskRepeat('once');
+    taskEditorActions.setName('');
+    taskEditorActions.setLayer('general');
+    taskEditorActions.setPriority('C');
+    taskEditorActions.setRepeat('once');
     const rounded = getRoundedCurrentTime();
     const roundedParts = parseTimeToEditor(rounded);
-    setNewTaskTime(rounded);
-    setNewTaskTimeFormat('24');
-    setNewTaskHourInput(roundedParts.hour24);
-    setNewTaskMinuteInput(roundedParts.minute);
-    setNewTaskPeriod(roundedParts.period);
-    setNewTaskDate(format(new Date(), 'yyyy-MM-dd'));
-    setNewTaskAlarmEnabled(true);
+    taskEditorActions.setTime(rounded);
+    taskEditorActions.setTimeFormat('24');
+    taskEditorActions.setHourInput(roundedParts.hour24);
+    taskEditorActions.setMinuteInput(roundedParts.minute);
+    taskEditorActions.setPeriod(roundedParts.period);
+    taskEditorActions.setDate(format(new Date(), 'yyyy-MM-dd'));
+    taskEditorActions.setAlarmEnabled(true);
     const defaultAlarm = getDefaultAlarmFromPreferences();
     if (defaultAlarm) {
-      setNewTaskPreferredMusic(defaultAlarm.name);
-      setNewTaskCustomAlarmName(defaultAlarm.name);
-      setNewTaskCustomAlarmDataUrl(defaultAlarm.dataUrl);
+      taskEditorActions.setPreferredMusic(defaultAlarm.name);
+      taskEditorActions.setCustomAlarmName(defaultAlarm.name);
+      taskEditorActions.setCustomAlarmDataUrl(defaultAlarm.dataUrl);
     } else {
-      setNewTaskPreferredMusic('');
-      setNewTaskCustomAlarmName('');
-      setNewTaskCustomAlarmDataUrl('');
+      taskEditorActions.setPreferredMusic('');
+      taskEditorActions.setCustomAlarmName('');
+      taskEditorActions.setCustomAlarmDataUrl('');
     }
-    setQuickAddError('');
+    taskEditorActions.setQuickAddError('');
     setShowTemplatePicker(false);
     setEdenTemplatePool([]);
     setShowQuickAdd(false);
@@ -1723,22 +1696,22 @@ const Home: React.FC = () => {
   const handleReminderSongUpload = async (file?: File | null) => {
     if (!file) return;
     if (!file.type.startsWith('audio/')) {
-      setQuickAddError('Please choose a valid reminder audio file.');
+      taskEditorActions.setQuickAddError('Please choose a valid reminder audio file.');
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setQuickAddError('Reminder audio is too large. Use a file under 20MB.');
+      taskEditorActions.setQuickAddError('Reminder audio is too large. Use a file under 20MB.');
       return;
     }
 
     const dataUrl = await readFileAsDataUrl(file);
     if ((dataUrl || '').length > 25 * 1024 * 1024) {
-      setQuickAddError('Reminder audio is too large after encoding. Please use a shorter or more compressed file.');
+      taskEditorActions.setQuickAddError('Reminder audio is too large after encoding. Please use a shorter or more compressed file.');
       return;
     }
 
-    setNewTaskCustomAlarmName(file.name);
-    setNewTaskCustomAlarmDataUrl(dataUrl);
+    taskEditorActions.setCustomAlarmName(file.name);
+    taskEditorActions.setCustomAlarmDataUrl(dataUrl);
     if (user) {
       setUser({
         ...user,
@@ -1749,34 +1722,34 @@ const Home: React.FC = () => {
         },
       });
     }
-    setQuickAddError('');
+    taskEditorActions.setQuickAddError('');
   };
 
   const applyTemplateDraft = (template: EdenTemplate) => {
-    setNewTaskName(template.name);
-    setNewTaskLayer(template.layerId);
-    setNewTaskPriority(template.priority);
-    setNewTaskRepeat(template.repeat);
+    taskEditorActions.setName(template.name);
+    taskEditorActions.setLayer(template.layerId);
+    taskEditorActions.setPriority(template.priority);
+    taskEditorActions.setRepeat(template.repeat);
 
     const parts = parseTimeToEditor(template.time);
-    setNewTaskTime(template.time);
-    if (newTaskTimeFormat === '12') {
-      setNewTaskHourInput(parts.hour12);
-      setNewTaskPeriod(parts.period);
+    taskEditorActions.setTime(template.time);
+    if (taskEditorState.timeFormat === '12') {
+      taskEditorActions.setHourInput(parts.hour12);
+      taskEditorActions.setPeriod(parts.period);
     } else {
-      setNewTaskHourInput(parts.hour24);
+      taskEditorActions.setHourInput(parts.hour24);
     }
-    setNewTaskMinuteInput(parts.minute);
+    taskEditorActions.setMinuteInput(parts.minute);
   };
 
   const handleTaskByEdenDraft = async () => {
     setIsGeneratingTask(true);
-    setQuickAddError('');
+    taskEditorActions.setQuickAddError('');
 
     const recommendations = getRecommendedEdenTemplates({
       tasks,
-      layerId: newTaskLayer,
-      intent: newTaskName,
+      layerId: taskEditorState.layer,
+      intent: taskEditorState.name,
       mostRepeated: user?.preferences.mostRepeatedTasks?.map((entry) => ({
         name: entry.name,
         layerId: entry.layerId,
@@ -1790,15 +1763,15 @@ const Home: React.FC = () => {
       setShowTemplatePicker(true);
     } else {
       setShowTemplatePicker(false);
-      setQuickAddError('No strong template match yet. You can keep typing or add the task manually.');
+      taskEditorActions.setQuickAddError('No strong template match yet. You can keep typing or add the task manually.');
     }
 
     const suggestion = await suggestTaskWithGemini({
       userName: user?.name,
-      layer: newTaskLayer,
-      priority: newTaskPriority,
-      preferredTime: newTaskTime,
-      intent: newTaskName || 'help me create one meaningful task for today',
+      layer: taskEditorState.layer,
+      priority: taskEditorState.priority,
+      preferredTime: taskEditorState.time,
+      intent: taskEditorState.name || 'help me create one meaningful task for today',
       userPreferences: {
         favoriteMusicName: favoriteFocusTrack?.name,
       },
@@ -1806,53 +1779,53 @@ const Home: React.FC = () => {
 
     if (!suggestion) {
       if (recommendations.length === 0) {
-        setQuickAddError('Task by Eden is unavailable right now. Try again.');
+        taskEditorActions.setQuickAddError('Task by Eden is unavailable right now. Try again.');
       }
       setIsGeneratingTask(false);
       reportActionBlocked('task-by-eden', 'Task by Eden is unavailable right now.', false);
       return;
     }
 
-    setQuickAddError('');
-    setNewTaskName(suggestion.name || newTaskName);
-    const normalizedTime = parseAnyTime(suggestion.time || newTaskTime);
+    taskEditorActions.setQuickAddError('');
+    taskEditorActions.setName(suggestion.name || taskEditorState.name);
+    const normalizedTime = parseAnyTime(suggestion.time || taskEditorState.time);
     if (normalizedTime) {
       const parts = parseTimeToEditor(normalizedTime);
-      setNewTaskTime(normalizedTime);
-      if (newTaskTimeFormat === '12') {
-        setNewTaskHourInput(parts.hour12);
-        setNewTaskPeriod(parts.period);
+      taskEditorActions.setTime(normalizedTime);
+      if (taskEditorState.timeFormat === '12') {
+        taskEditorActions.setHourInput(parts.hour12);
+        taskEditorActions.setPeriod(parts.period);
       } else {
-        setNewTaskHourInput(parts.hour24);
+        taskEditorActions.setHourInput(parts.hour24);
       }
-      setNewTaskMinuteInput(parts.minute);
+      taskEditorActions.setMinuteInput(parts.minute);
     }
-    setNewTaskPreferredMusic(favoriteFocusTrack?.name || suggestion.preferredMusic || newTaskPreferredMusic);
+    taskEditorActions.setPreferredMusic(favoriteFocusTrack?.name || suggestion.preferredMusic || taskEditorState.preferredMusic);
     if (favoriteFocusTrack && suggestion.preferredMusic === favoriteFocusTrack.name) {
-      setNewTaskCustomAlarmName(favoriteFocusTrack.name);
-      setNewTaskCustomAlarmDataUrl(favoriteFocusTrack.dataUrl);
+      taskEditorActions.setCustomAlarmName(favoriteFocusTrack.name);
+      taskEditorActions.setCustomAlarmDataUrl(favoriteFocusTrack.dataUrl);
     }
     setIsGeneratingTask(false);
     reportActionSuccess('task-by-eden', 'Task draft generated from Eden recommendations.');
   };
 
   useEffect(() => {
-    const normalized = buildTimeFromEditor(newTaskTimeFormat, newTaskHourInput, newTaskMinuteInput, newTaskPeriod);
+    const normalized = buildTimeFromEditor(taskEditorState.timeFormat, taskEditorState.hourInput, taskEditorState.minuteInput, taskEditorState.period);
     if (normalized) {
-      setNewTaskTime(normalized);
+      taskEditorActions.setTime(normalized);
     }
-  }, [newTaskTimeFormat, newTaskHourInput, newTaskMinuteInput, newTaskPeriod]);
+  }, [taskEditorState.timeFormat, taskEditorState.hourInput, taskEditorState.minuteInput, taskEditorState.period]);
 
   useEffect(() => {
-    const parts = parseTimeToEditor(newTaskTime);
-    if (newTaskTimeFormat === '12') {
-      setNewTaskHourInput(parts.hour12);
-      setNewTaskPeriod(parts.period);
+    const parts = parseTimeToEditor(taskEditorState.time);
+    if (taskEditorState.timeFormat === '12') {
+      taskEditorActions.setHourInput(parts.hour12);
+      taskEditorActions.setPeriod(parts.period);
       return;
     }
 
-    setNewTaskHourInput(parts.hour24);
-  }, [newTaskTimeFormat]);
+    taskEditorActions.setHourInput(parts.hour24);
+  }, [taskEditorState.timeFormat]);
 
   const handleInstallApp = async () => {
     if (!installPromptEvent) {
@@ -2057,7 +2030,7 @@ const Home: React.FC = () => {
                   completeBibleDay(completed);
                 }}
                 onReadMore={() => {
-                  setShowScripturePage(true);
+                  bibleReaderActions.setShowScripturePage(true);
                 }}
                 isProgressionEnforced={true}
               />
@@ -2182,9 +2155,9 @@ const Home: React.FC = () => {
       )}
 
       <AnimatePresence>
-        {showScripturePage && (
+        {bibleReaderState.showScripturePage && (
           <motion.div ref={scripturePageRef} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }} className="min-h-screen bg-surface overflow-y-auto no-scrollbar pb-24">
-            {isScriptureFullscreen && (
+            {bibleReaderState.isFullscreen && (
               <div
                 className="fixed left-0 right-0 z-40 px-3 pointer-events-none top-[env(safe-area-inset-top)]"
               >
@@ -2225,12 +2198,12 @@ const Home: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    aria-label={isScriptureFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                    title={isScriptureFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    aria-label={bibleReaderState.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    title={bibleReaderState.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                     onClick={toggleScriptureFullscreen}
                     className="h-10 w-10 rounded-full hover:bg-surface-container-low text-primary flex items-center justify-center transition-colors"
                   >
-                    {isScriptureFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    {bibleReaderState.isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                   </button>
                   <button
                     aria-label="Previous scripture"
@@ -2245,12 +2218,12 @@ const Home: React.FC = () => {
                     {loadingBible ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                   </button>
                   <button
-                    aria-label={isReadingScriptureAloud ? 'Stop reading aloud' : 'Read scripture aloud'}
-                    title={isReadingScriptureAloud ? 'Stop reading aloud' : 'Read aloud'}
-                    onClick={isReadingScriptureAloud ? stopScriptureReading : readScriptureAloud}
+                    aria-label={bibleReaderState.isReadingAloud ? 'Stop reading aloud' : 'Read scripture aloud'}
+                    title={bibleReaderState.isReadingAloud ? 'Stop reading aloud' : 'Read aloud'}
+                    onClick={bibleReaderState.isReadingAloud ? stopScriptureReading : readScriptureAloud}
                     className="h-10 w-10 rounded-full hover:bg-surface-container-low text-primary flex items-center justify-center transition-colors"
                   >
-                    {isReadingScriptureAloud ? <Pause size={16} /> : <Play size={16} />}
+                    {bibleReaderState.isReadingAloud ? <Pause size={16} /> : <Play size={16} />}
                   </button>
                   <button
                     aria-label="Next day reading"
@@ -2273,8 +2246,8 @@ const Home: React.FC = () => {
                   {notificationStatus && (
                     <p className="text-xs font-semibold text-primary">{notificationStatus}</p>
                   )}
-                  {scripturePages.length > 1 && (
-                    <p className="text-xs text-secondary uppercase tracking-[0.14em] font-bold">Passage {scripturePageIndex + 1} of {scripturePages.length}</p>
+                  {bibleReaderState.pages.length > 1 && (
+                    <p className="text-xs text-secondary uppercase tracking-[0.14em] font-bold">Passage {bibleReaderState.pageIndex + 1} of {bibleReaderState.pages.length}</p>
                   )}
                 </div>
               </section>
@@ -2282,14 +2255,14 @@ const Home: React.FC = () => {
               <section className="space-y-7 max-w-2xl">
                 {loadingScriptureText && <p className="text-sm text-on-surface-variant">Loading chapter text from ASV database...</p>}
 
-                {!loadingScriptureText && scripturePages.length === 0 && (
+                {!loadingScriptureText && bibleReaderState.pages.length === 0 && (
                   <p className="text-base leading-7 text-on-surface-variant dark:text-on-surface">
                     <span className="text-primary font-semibold mr-2">1</span>
                     {bibleReading.text}
                   </p>
                 )}
 
-                {!loadingScriptureText && scripturePages.length > 0 && (
+                {!loadingScriptureText && bibleReaderState.pages.length > 0 && (
                   <div className="space-y-6">
                     <p className="text-xs uppercase tracking-[0.14em] font-bold text-primary">{activeScriptureLabel}</p>
                     {activeScripturePage.map((verse, index) => {
@@ -2311,22 +2284,22 @@ const Home: React.FC = () => {
                   </div>
                 )}
 
-                {scripturePages.length > 1 && (
+                {bibleReaderState.pages.length > 1 && (
                   <section className="max-w-2xl pt-8">
                     <div className="flex items-center justify-between gap-3 border-t border-outline-variant/25 pt-6">
                       <button
                         type="button"
-                        onClick={() => setScripturePageIndex((prev) => Math.max(0, prev - 1))}
-                        disabled={scripturePageIndex <= 0}
+                        onClick={() => bibleReaderActions.setScripturePageIndex((prev) => Math.max(0, prev - 1))}
+                        disabled={bibleReaderState.pageIndex <= 0}
                         className="px-4 py-2 rounded-full bg-surface-container-low text-primary text-xs font-bold uppercase tracking-[0.14em] disabled:opacity-40"
                       >
                         Keep Reading Left
                       </button>
-                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">{scripturePageIndex + 1}/{scripturePages.length}</p>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">{bibleReaderState.pageIndex + 1}/{bibleReaderState.pages.length}</p>
                       <button
                         type="button"
-                        onClick={() => setScripturePageIndex((prev) => Math.min(scripturePages.length - 1, prev + 1))}
-                        disabled={scripturePageIndex >= scripturePages.length - 1}
+                        onClick={() => bibleReaderActions.setScripturePageIndex((prev) => Math.min(bibleReaderState.pages.length - 1, prev + 1))}
+                        disabled={bibleReaderState.pageIndex >= bibleReaderState.pages.length - 1}
                         className="px-4 py-2 rounded-full bg-primary text-white text-xs font-bold uppercase tracking-[0.14em] disabled:opacity-40"
                       >
                         Keep Reading Right
@@ -2392,14 +2365,14 @@ const Home: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  {quickAddError && <p className="text-xs text-red-600">{quickAddError}</p>}
+                  {taskEditorState.quickAddError && <p className="text-xs text-red-600">{taskEditorState.quickAddError}</p>}
 
                   <div>
                     <label className="font-label text-[10px] uppercase tracking-[0.16em] text-outline font-bold block mb-2">Task Name</label>
                     <input
                       aria-label="Task name"
-                      value={newTaskName}
-                      onChange={(e) => setNewTaskName(e.target.value)}
+                      value={taskEditorState.name}
+                      onChange={(e) => taskEditorActions.setName(e.target.value)}
                       placeholder="Write one clear task"
                       className="w-full rounded-xl border border-outline-variant/45 bg-surface-container-low px-3 py-2 text-sm text-on-surface"
                     />
@@ -2424,8 +2397,8 @@ const Home: React.FC = () => {
                       <label className="font-label text-[10px] uppercase tracking-[0.16em] text-outline font-bold block mb-2">Layer</label>
                       <select
                         aria-label="Task layer"
-                        value={newTaskLayer}
-                        onChange={(e) => setNewTaskLayer(e.target.value as LayerId)}
+                        value={taskEditorState.layer}
+                        onChange={(e) => taskEditorActions.setLayer(e.target.value as LayerId)}
                         className="w-full rounded-xl border border-outline-variant/45 bg-surface-container-low px-3 py-2 text-sm text-on-surface"
                       >
                         <option value="spiritual">Spiritual</option>
@@ -2440,8 +2413,8 @@ const Home: React.FC = () => {
                       <label className="font-label text-[10px] uppercase tracking-[0.16em] text-outline font-bold block mb-2">Priority</label>
                       <select
                         aria-label="Task priority"
-                        value={newTaskPriority}
-                        onChange={(e) => setNewTaskPriority(e.target.value as 'A' | 'B' | 'C' | 'D' | 'E')}
+                        value={taskEditorState.priority}
+                        onChange={(e) => taskEditorActions.setPriority(e.target.value as 'A' | 'B' | 'C' | 'D' | 'E')}
                         className="w-full rounded-xl border border-outline-variant/45 bg-surface-container-low px-3 py-2 text-sm text-on-surface"
                       >
                         <option value="A">A</option>
@@ -2458,10 +2431,10 @@ const Home: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setNewTaskTimeFormat('24')}
+                            onClick={() => taskEditorActions.setTimeFormat('24')}
                             className={cn(
                               'px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-[0.12em] border transition-colors',
-                              newTaskTimeFormat === '24'
+                              taskEditorState.timeFormat === '24'
                                 ? 'bg-primary text-white border-primary'
                                 : 'bg-surface-container-lowest text-secondary border-outline-variant/40'
                             )}
@@ -2470,10 +2443,10 @@ const Home: React.FC = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setNewTaskTimeFormat('12')}
+                            onClick={() => taskEditorActions.setTimeFormat('12')}
                             className={cn(
                               'px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-[0.12em] border transition-colors',
-                              newTaskTimeFormat === '12'
+                              taskEditorState.timeFormat === '12'
                                 ? 'bg-primary text-white border-primary'
                                 : 'bg-surface-container-lowest text-secondary border-outline-variant/40'
                             )}
@@ -2486,28 +2459,28 @@ const Home: React.FC = () => {
                           <input
                             aria-label="Task hour"
                             inputMode="numeric"
-                            value={newTaskHourInput}
-                            onChange={(e) => setNewTaskHourInput(e.target.value.replace(/\D/g, '').slice(0, 2))}
-                            placeholder={newTaskTimeFormat === '24' ? '00-23' : '01-12'}
+                            value={taskEditorState.hourInput}
+                            onChange={(e) => taskEditorActions.setHourInput(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                            placeholder={taskEditorState.timeFormat === '24' ? '00-23' : '01-12'}
                             className="w-full rounded-lg border border-outline-variant/45 bg-surface-container-lowest px-2 py-1.5 text-center text-sm text-on-surface"
                           />
                           <span className="text-sm font-bold text-secondary">:</span>
                           <input
                             aria-label="Task minute"
                             inputMode="numeric"
-                            value={newTaskMinuteInput}
-                            onChange={(e) => setNewTaskMinuteInput(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                            value={taskEditorState.minuteInput}
+                            onChange={(e) => taskEditorActions.setMinuteInput(e.target.value.replace(/\D/g, '').slice(0, 2))}
                             placeholder="00-59"
                             className="w-full rounded-lg border border-outline-variant/45 bg-surface-container-lowest px-2 py-1.5 text-center text-sm text-on-surface"
                           />
-                          {newTaskTimeFormat === '12' ? (
+                          {taskEditorState.timeFormat === '12' ? (
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
-                                onClick={() => setNewTaskPeriod('AM')}
+                                onClick={() => taskEditorActions.setPeriod('AM')}
                                 className={cn(
                                   'px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-[0.12em] border',
-                                  newTaskPeriod === 'AM'
+                                  taskEditorState.period === 'AM'
                                     ? 'bg-primary text-white border-primary'
                                     : 'bg-surface-container-lowest text-secondary border-outline-variant/40'
                                 )}
@@ -2516,10 +2489,10 @@ const Home: React.FC = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => setNewTaskPeriod('PM')}
+                                onClick={() => taskEditorActions.setPeriod('PM')}
                                 className={cn(
                                   'px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-[0.12em] border',
-                                  newTaskPeriod === 'PM'
+                                  taskEditorState.period === 'PM'
                                     ? 'bg-primary text-white border-primary'
                                     : 'bg-surface-container-lowest text-secondary border-outline-variant/40'
                                 )}
@@ -2532,7 +2505,7 @@ const Home: React.FC = () => {
                           )}
                         </div>
 
-                        <p className="text-[10px] text-secondary">Saved time: {newTaskTime}</p>
+                        <p className="text-[10px] text-secondary">Saved time: {taskEditorState.time}</p>
                       </div>
                     </div>
                   </div>
@@ -2541,8 +2514,8 @@ const Home: React.FC = () => {
                     <label className="font-label text-[10px] uppercase tracking-[0.16em] text-outline font-bold block mb-2">Repeat</label>
                     <select
                       aria-label="Task repeat"
-                      value={newTaskRepeat}
-                      onChange={(e) => setNewTaskRepeat(e.target.value as 'once' | 'daily' | 'weekly')}
+                      value={taskEditorState.repeat}
+                      onChange={(e) => taskEditorActions.setRepeat(e.target.value as 'once' | 'daily' | 'weekly')}
                       className="w-full rounded-xl border border-outline-variant/45 bg-surface-container-low px-3 py-2 text-sm text-on-surface"
                     >
                       <option value="once">Once</option>
@@ -2557,10 +2530,10 @@ const Home: React.FC = () => {
                       type="number"
                       min="5"
                       max="300"
-                      value={newTaskDuration}
+                      value={taskEditorState.duration}
                       onChange={(e) => {
                         const val = Number(e.target.value);
-                        if (val >= 5 && val <= 300) setNewTaskDuration(val);
+                        if (val >= 5 && val <= 300) taskEditorActions.setDuration(val);
                       }}
                       className="w-full rounded-xl border border-outline-variant/45 bg-surface-container-low px-3 py-2 text-sm text-on-surface"
                       title="Set task duration (5-300 minutes)"
@@ -2568,14 +2541,14 @@ const Home: React.FC = () => {
                     <p className="text-xs text-secondary mt-1">Task will be marked as failed if not completed within this time</p>
                   </div>
 
-                  {newTaskRepeat === 'weekly' && (
+                  {taskEditorState.repeat === 'weekly' && (
                     <div>
                       <label className="font-label text-[10px] uppercase tracking-[0.16em] text-outline font-bold block mb-2">Calendar Day</label>
                       <input
                         type="date"
                         aria-label="Task calendar date"
-                        value={newTaskDate}
-                        onChange={(e) => setNewTaskDate(e.target.value)}
+                        value={taskEditorState.date}
+                        onChange={(e) => taskEditorActions.setDate(e.target.value)}
                         className="w-full rounded-xl border border-outline-variant/45 bg-surface-container-low px-3 py-2 text-sm text-on-surface"
                       />
                     </div>
@@ -2606,8 +2579,8 @@ const Home: React.FC = () => {
                           className="hidden"
                           disabled={mediaPermissionGranted !== true}
                         />
-                        {newTaskCustomAlarmName ? (
-                          <p className="text-xs text-on-surface-variant">Selected: {newTaskCustomAlarmName}</p>
+                        {taskEditorState.customAlarmName ? (
+                          <p className="text-xs text-on-surface-variant">Selected: {taskEditorState.customAlarmName}</p>
                         ) : (
                           <p className="text-xs text-secondary">No upload yet. Task will use default alarm behavior.</p>
                         )}
@@ -2678,10 +2651,10 @@ const Home: React.FC = () => {
                     <button
                       type="button"
                       aria-label="Toggle alarm"
-                      onClick={() => setNewTaskAlarmEnabled((prev) => !prev)}
+                      onClick={() => taskEditorActions.setAlarmEnabled((prev) => !prev)}
                       className={cn(
                         'h-8 w-14 rounded-full relative transition-all duration-300 border',
-                        newTaskAlarmEnabled
+                        taskEditorState.alarmEnabled
                           ? 'bg-gradient-to-r from-primary to-primary-container border-primary/40 shadow-[0_8px_20px_rgba(150,68,7,0.25)]'
                           : 'bg-surface-container-low border-outline-variant/60'
                       )}
@@ -2689,10 +2662,10 @@ const Home: React.FC = () => {
                       <span
                         className={cn(
                           'absolute top-1 h-6 w-6 rounded-full bg-white transition-all duration-300 flex items-center justify-center',
-                          newTaskAlarmEnabled ? 'translate-x-7' : 'translate-x-1'
+                          taskEditorState.alarmEnabled ? 'translate-x-7' : 'translate-x-1'
                         )}
                       >
-                        <span className={cn('h-2 w-2 rounded-full', newTaskAlarmEnabled ? 'bg-primary' : 'bg-outline')} />
+                        <span className={cn('h-2 w-2 rounded-full', taskEditorState.alarmEnabled ? 'bg-primary' : 'bg-outline')} />
                       </span>
                     </button>
                   </label>
@@ -2838,7 +2811,7 @@ const Home: React.FC = () => {
                       <div className="space-y-2 max-h-[34vh] overflow-y-auto">
                         {searchedTasks.map((task) => {
                           const layer = layers.find((l) => l.id === task.layerId);
-                          const editing = editingSearchTaskId === task.id;
+                          const editing = taskEditorState.editingSearchTaskId === task.id;
                           return (
                             <div key={`search-task-${task.id}`} className="rounded-xl border border-outline-variant/25 p-3 bg-surface-container-lowest space-y-3">
                               <div className="flex items-center justify-between gap-3">
@@ -2874,20 +2847,20 @@ const Home: React.FC = () => {
                               {editing && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                   <input
-                                    value={editingSearchTaskName}
-                                    onChange={(e) => setEditingSearchTaskName(e.target.value)}
+                                    value={taskEditorState.editingSearchTaskName}
+                                    onChange={(e) => taskEditorActions.setEditingSearchTaskName(e.target.value)}
                                     className="rounded-lg border border-outline-variant/40 bg-surface px-2.5 py-2 text-sm"
                                     placeholder="Task name"
                                   />
                                   <input
-                                    value={editingSearchTaskTime}
-                                    onChange={(e) => setEditingSearchTaskTime(e.target.value)}
+                                    value={taskEditorState.editingSearchTaskTime}
+                                    onChange={(e) => taskEditorActions.setEditingSearchTaskTime(e.target.value)}
                                     className="rounded-lg border border-outline-variant/40 bg-surface px-2.5 py-2 text-sm"
                                     placeholder="14:30 or 2:30 PM"
                                   />
                                   <select
-                                    value={editingSearchTaskRepeat}
-                                    onChange={(e) => setEditingSearchTaskRepeat(e.target.value as 'once' | 'daily' | 'weekly')}
+                                    value={taskEditorState.editingSearchTaskRepeat}
+                                    onChange={(e) => taskEditorActions.setEditingSearchTaskRepeat(e.target.value as 'once' | 'daily' | 'weekly')}
                                     aria-label="Task repeat"
                                     className="rounded-lg border border-outline-variant/40 bg-surface px-2.5 py-2 text-sm"
                                   >
@@ -2896,8 +2869,8 @@ const Home: React.FC = () => {
                                     <option value="weekly">Weekly</option>
                                   </select>
                                   <select
-                                    value={editingSearchTaskPriority}
-                                    onChange={(e) => setEditingSearchTaskPriority(e.target.value as 'A' | 'B' | 'C' | 'D' | 'E')}
+                                    value={taskEditorState.editingSearchTaskPriority}
+                                    onChange={(e) => taskEditorActions.setEditingSearchTaskPriority(e.target.value as 'A' | 'B' | 'C' | 'D' | 'E')}
                                     aria-label="Task priority"
                                     className="rounded-lg border border-outline-variant/40 bg-surface px-2.5 py-2 text-sm"
                                   >
@@ -2909,7 +2882,7 @@ const Home: React.FC = () => {
                                   </select>
                                   <div className="sm:col-span-2 flex gap-2">
                                     <button onClick={saveTaskEditorFromSearch} className="px-3 py-2 rounded-lg bg-primary text-white text-xs font-bold uppercase tracking-[0.12em]">Save</button>
-                                    <button onClick={() => setEditingSearchTaskId(null)} className="px-3 py-2 rounded-lg bg-surface-container-low text-secondary text-xs font-bold uppercase tracking-[0.12em]">Cancel</button>
+                                    <button onClick={() => taskEditorActions.setEditingSearchTaskId(null)} className="px-3 py-2 rounded-lg bg-surface-container-low text-secondary text-xs font-bold uppercase tracking-[0.12em]">Cancel</button>
                                   </div>
                                 </div>
                               )}

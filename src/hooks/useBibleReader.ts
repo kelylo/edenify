@@ -91,7 +91,7 @@ export const useBibleReader = (): [BibleReaderState, BibleReaderActions] => {
   }, []);
 
   // Audio ref helpers
-  const getAudioRef = useCallback(() => audioRef.current, []);
+  const getAudioRef = useCallback(() => audioRef, []);
   const setAudioRef = useCallback((ref: HTMLAudioElement) => {
     audioRef.current = ref;
   }, []);
