@@ -8,6 +8,7 @@ import { useInfiniteScroll } from '../lib/useInfiniteScroll';
 import { useDragAndDrop } from '../lib/useDragAndDrop';
 import { highlightSearch } from '../lib/highlightSearch';
 import { format } from 'date-fns';
+import { pad2, getDateKey, parseTimeToEditor, buildTimeFromEditor, parseAnyTime, getRoundedCurrentTime, getYesterdayKey } from '../lib/dateUtils';
 import { ArrowLeft, ArrowRight, BellRing, CheckCircle2, Circle, Loader2, Maximize2, Minimize2, Pause, Pencil, Play, Plus, RefreshCw, Search, SkipForward, Timer, Trash2, WandSparkles, X } from 'lucide-react';
 import { cn, getDailyTaskStats, getProgress, isTaskCompletedForToday, isTaskScheduledForToday, parseTaskDueDate, requestMediaPermission, isTaskFailedByDuration } from '../lib/utils';
 import { getEdenInsight, suggestTaskWithGemini } from '../services/gemini';
@@ -40,89 +41,6 @@ const ACADEMIC_TIMETABLE: Record<number, string[]> = {
   5: ['Anglais technique', 'Methodologie de projet', 'Projet tutorat'],
   6: [],
 };
-const getRoundedCurrentTime = () => {
-  const now = new Date();
-  const roundedMinutes = Math.ceil(now.getMinutes() / 5) * 5;
-  const next = new Date(now);
-  next.setSeconds(0, 0);
-  if (roundedMinutes >= 60) {
-    next.setHours(now.getHours() + 1, 0, 0, 0);
-  } else {
-    next.setMinutes(roundedMinutes, 0, 0);
-  }
-  return `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`;
-};
-
-const pad2 = (value: number) => String(value).padStart(2, '0');
-
-const parseTimeToEditor = (time24: string) => {
-  const match = String(time24 || '').trim().match(/^([0-1]?\d|2[0-3]):([0-5]\d)$/);
-  if (!match) {
-    return {
-      hour24: '08',
-      minute: '00',
-      hour12: '08',
-      period: 'AM' as 'AM' | 'PM',
-    };
-  }
-
-  const hour24 = Number(match[1]);
-  const minute = Number(match[2]);
-  const period = hour24 >= 12 ? 'PM' : 'AM';
-  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-
-  return {
-    hour24: pad2(hour24),
-    minute: pad2(minute),
-    hour12: pad2(hour12),
-    period: period as 'AM' | 'PM',
-  };
-};
-
-const buildTimeFromEditor = (
-  format: '12' | '24',
-  hourInput: string,
-  minuteInput: string,
-  period: 'AM' | 'PM'
-) => {
-  const hour = Number(hourInput);
-  const minute = Number(minuteInput);
-
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-  if (minute < 0 || minute > 59) return null;
-
-  if (format === '24') {
-    if (hour < 0 || hour > 23) return null;
-    return `${pad2(hour)}:${pad2(minute)}`;
-  }
-
-  if (hour < 1 || hour > 12) return null;
-  let hours24 = hour % 12;
-  if (period === 'PM') hours24 += 12;
-  return `${pad2(hours24)}:${pad2(minute)}`;
-};
-
-const parseAnyTimeTo24 = (value: string) => {
-  const normalized = String(value || '').toUpperCase().replace(/\s+/g, ' ').trim();
-  const match12 = normalized.match(/^(\d{1,2}):(\d{2})\s?(AM|PM)$/i);
-  const match24 = normalized.match(/^([0-1]?\d|2[0-3]):([0-5]\d)$/);
-
-  if (match12) {
-    let hours = Number(match12[1]);
-    const minutes = Number(match12[2]);
-    const nextPeriod = match12[3].toUpperCase();
-    if (nextPeriod === 'PM' && hours !== 12) hours += 12;
-    if (nextPeriod === 'AM' && hours === 12) hours = 0;
-    return `${pad2(hours)}:${pad2(minutes)}`;
-  }
-
-  if (match24) {
-    return `${pad2(Number(match24[1]))}:${match24[2]}`;
-  }
-
-  return null;
-};
-
 
 const useDebouncedValue = <T,>(value: T, delayMs: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -976,7 +894,7 @@ const Home: React.FC = () => {
       return;
     }
 
-    const normalizedTime = parseAnyTimeTo24(editingSearchTaskTime);
+    const normalizedTime = parseAnyTime(editingSearchTaskTime);
     if (!normalizedTime) {
       setNotificationStatus('Please enter a valid time for task edit (HH:MM or H:MM AM/PM).');
       reportActionBlocked('search-task-save', 'Invalid task time in search editor.', false);
@@ -1020,7 +938,7 @@ const Home: React.FC = () => {
       return;
     }
 
-    const normalizedTime = parseAnyTimeTo24(detailTaskTime);
+    const normalizedTime = parseAnyTime(detailTaskTime);
     if (!normalizedTime) {
       setDetailTaskError('Please provide a valid time (HH:MM or H:MM AM/PM).');
       reportActionBlocked('task-details-save', 'Task details time is invalid.', false);
@@ -1401,7 +1319,7 @@ const Home: React.FC = () => {
       || tasks.find((task) => task.layerId === 'academic' && task.name.trim().toLowerCase() === 'revision');
     if (!revisionTask) return;
 
-    const normalizedTime = parseAnyTimeTo24(revisionTask.time || '');
+    const normalizedTime = parseAnyTime(revisionTask.time || '');
     if (!normalizedTime) return;
 
     const [hours, minutes] = normalizedTime.split(':').map(Number);
@@ -1897,7 +1815,7 @@ const Home: React.FC = () => {
 
     setQuickAddError('');
     setNewTaskName(suggestion.name || newTaskName);
-    const normalizedTime = parseAnyTimeTo24(suggestion.time || newTaskTime);
+    const normalizedTime = parseAnyTime(suggestion.time || newTaskTime);
     if (normalizedTime) {
       const parts = parseTimeToEditor(normalizedTime);
       setNewTaskTime(normalizedTime);

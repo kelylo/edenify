@@ -5,6 +5,7 @@ import { getDayReading, getTotalReadingDays } from './services/bible';
 import { loadBackendUserState, loadUserState, saveBackendUserState, saveUserState } from './services/supabase';
 import { syncNativeTaskAlarms } from './services/native-alarms';
 import { removeTaskFromGoogleCalendar, syncTaskToGoogleCalendar } from './services/google-calendar';
+import { getDateKey, getYesterdayKey, getDayDiff } from './lib/dateUtils';
 
 interface AppState {
   user: User | null;
@@ -43,33 +44,11 @@ const DEFAULT_REVISION_HABIT_ID = 'default-academic-revision-habit';
 const DEFAULT_REVISION_TIME = '19:00';
 const MEDIA_FALLBACK_FIELDS = ['customFocusSongDataUrl', 'customFocusPlaylistDataUrls'] as const;
 
-const getLocalDateKey = (date = new Date()) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getYesterdayDateKey = (date = new Date()) => {
-  const yesterday = new Date(date);
-  yesterday.setDate(yesterday.getDate() - 1);
-  return getLocalDateKey(yesterday);
-};
-
-const getDayDiff = (fromKey: string, toKey: string) => {
-  const from = new Date(`${fromKey}T00:00:00`);
-  const to = new Date(`${toKey}T00:00:00`);
-  const fromMs = from.getTime();
-  const toMs = to.getTime();
-  if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) return 0;
-  return Math.floor((toMs - fromMs) / (24 * 60 * 60 * 1000));
-};
-
 const shiftDateKey = (dateKey: string, days: number) => {
   const base = new Date(`${dateKey}T00:00:00`);
-  if (!Number.isFinite(base.getTime())) return getLocalDateKey();
+  if (!Number.isFinite(base.getTime())) return getDateKey();
   base.setDate(base.getDate() + days);
-  return getLocalDateKey(base);
+  return getDateKey(base);
 };
 
 const sanitizeTaskForPersistence = (task: Task): Task => {
@@ -673,7 +652,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (!user) return;
 
-    const today = getLocalDateKey();
+    const today = getDateKey();
 
     setUser((prev) => {
       if (!prev) return prev;
@@ -760,7 +739,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.log('[Bible] Total reading days:', totalDays);
         
         const highest = Math.min(totalDays, Math.max(0, bibleReading.highestCompletedDay || 0));
-        const todayKey = getLocalDateKey();
+        const todayKey = getDateKey();
         const completedToday = bibleReading.lastCompletedDate === todayKey && highest > 0;
         const targetDay = Math.min(totalDays, Math.max(1, highest + (completedToday ? 0 : 1)));
         
@@ -998,7 +977,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     const syncBibleCompletionWithCalendar = () => {
-      const today = getLocalDateKey();
+      const today = getDateKey();
       setBibleReading((prev) => {
         if (!prev.completed) return prev;
         if (prev.lastCompletedDate === today) return prev;
@@ -1177,7 +1156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const totalDays = await getTotalReadingDays();
     const day = Math.min(totalDays, Math.max(1, targetDay));
     const data = await getDayReading(day);
-    const today = getLocalDateKey();
+    const today = getDateKey();
     setBibleReading({
       day,
       totalDays,
@@ -1192,7 +1171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const refreshBibleReading = async () => {
     const totalDays = await getTotalReadingDays();
-    const today = getLocalDateKey();
+    const today = getDateKey();
     const completedToday = bibleReading.lastCompletedDate === today && bibleReading.highestCompletedDay > 0;
     const safeDay = Math.min(totalDays, Math.max(1, bibleReading.highestCompletedDay + (completedToday ? 0 : 1)));
     const data = await getDayReading(safeDay);
@@ -1213,14 +1192,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const completeBibleDay = async (completed = true) => {
-    const today = getLocalDateKey();
+    const today = getDateKey();
     const totalDays = await getTotalReadingDays();
     const current = bibleReading;
 
     if (completed) {
       const completedDay = Math.min(totalDays, Math.max(1, current.day));
       const nextHighest = Math.max(current.highestCompletedDay, completedDay);
-      const yesterday = getYesterdayDateKey();
+      const yesterday = getYesterdayKey();
       const nextStreak = current.lastCompletedDate === yesterday
         ? Math.max(1, Number(current.currentStreak || 0) + 1)
         : 1;
