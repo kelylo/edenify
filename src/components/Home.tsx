@@ -740,6 +740,10 @@ const Home: React.FC = () => {
       focusTaskFromNotification(taskId);
     };
 
+    const handleOpenSearch = () => {
+      setShowGlobalSearch(true);
+    };
+
     // Listen for Service Worker messages (including alarm playback signals)
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === 'PLAY_ALARM') {
@@ -3111,7 +3115,7 @@ const Home: React.FC = () => {
               initial={{ y: 16, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 16, opacity: 0 }}
-              className="w-full max-w-md bg-surface rounded-3xl border border-outline-variant/35 p-6"
+              className="w-full max-w-lg bg-surface rounded-3xl border border-outline-variant/35 p-6"
             >
               <div className="flex items-start justify-between mb-4">
                 <div>

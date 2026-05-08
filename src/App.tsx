@@ -264,17 +264,17 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (authReady) {
-      setBootProgress((current) => Math.max(current, 98));
+      setBootProgress((current) => Math.max(current, 60));
       const finishInterval = window.setInterval(() => {
         setBootProgress((current) => {
-          const next = Math.min(100, current + 4);
-          if (next >= 100 && backendReady) {
+          const next = Math.min(100, current + 8);
+          if (next >= 100) {
             window.clearInterval(finishInterval);
             setBootScreenVisible(false);
           }
           return next;
         });
-      }, 12);
+      }, 40);
 
       return () => {
         window.clearInterval(finishInterval);

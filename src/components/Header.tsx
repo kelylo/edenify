@@ -26,6 +26,8 @@ const Header: React.FC<HeaderProps> = ({ showNotifications = true }) => {
         <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
           <button 
             aria-label="Search"
+            title="Search"
+            onClick={() => window.dispatchEvent(new CustomEvent('edenify:open-search', { detail: {} }))}
             className="h-10 w-10 rounded-full bg-surface-container-low hover:bg-surface-container transition-colors text-primary flex items-center justify-center border border-outline-variant/25 active:scale-95 duration-150"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
