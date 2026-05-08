@@ -815,28 +815,6 @@ async function startServer() {
       }
 
       const userData = db.data?.[sessionUserId] || {};
-      const expanded = String(process.env.OPENAI_API_KEYS || '')
-        .split(',')
-        .map((key) => key.trim())
-        .filter(Boolean);
-
-      const keys = [
-        process.env.OPENAI_API_KEY_1,
-        process.env.OPENAI_API_KEY_2,
-        process.env.OPENAI_API_KEY,
-        process.env.OPENAI_KEY,
-        process.env.VITE_OPENAI_API_KEY_1,
-        process.env.VITE_OPENAI_API_KEY_2,
-        process.env.VITE_OPENAI_API_KEY,
-        ...expanded,
-      ]
-        .map((key) => String(key || '').trim())
-        .filter((key): key is string => Boolean(key));
-
-      const deduped = Array.from(new Set(keys));
-
-      if (deduped.length <= 1) return deduped;
-      return Math.random() < 0.5 ? [deduped[1], deduped[0], ...deduped.slice(2)] : deduped;
       const now = new Date();
       const nowMs = now.getTime();
       const tasks = Array.isArray(userData.tasks) ? userData.tasks.map((task: any) => normalizeTask(task)) : [];
@@ -850,7 +828,6 @@ async function startServer() {
         const alarmKey = `${sessionUserId}|sw|${task.id}|${dueStamp}|alarm`;
 
         if (!db.reminders[alarmKey] && nowMs >= due.getTime() - 60_000 && nowMs <= due.getTime() + 75_000) {
-          // Pre-lock reminder key before returning to avoid duplicate notifications if client ack fails.
           db.reminders[alarmKey] = new Date().toISOString();
           writeDb(DB_PATH, db);
           res.json({
@@ -865,11 +842,7 @@ async function startServer() {
           });
           return;
         }
-
       }
-
-      // Bible reminders are delivered strictly through the scheduled Bible task.
-      // No additional fallback/default scripture reminder is emitted here.
 
       res.json({ shouldNotify: false });
     } catch (error) {
