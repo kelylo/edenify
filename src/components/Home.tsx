@@ -1961,7 +1961,7 @@ const Home: React.FC = () => {
       )}
 
       {!isSubPageOpen && (
-      <main className="pt-[82px] px-4 sm:px-6 lg:px-8 w-full space-y-7">
+      <main className="pt-[82px] px-4 sm:px-6 lg:px-8 w-full max-w-7xl mx-auto space-y-7">
         <motion.section initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3 px-1">
           <p className="font-label text-[11px] uppercase tracking-[0.2em] text-on-surface-variant/60 font-bold">{formattedDate}</p>
           <h1 className="display-text text-[2.6rem] sm:text-5xl font-medium tracking-[-0.04em] leading-[0.98] text-on-surface max-w-[12ch]">Good day, {user?.name || 'there'}.</h1>

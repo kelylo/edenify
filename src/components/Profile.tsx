@@ -243,7 +243,7 @@ const Profile: React.FC = () => {
   const panelClass = 'bg-surface-container-low rounded-3xl p-2 border border-outline-variant/25';
 
   return (
-    <div className="p-4 sm:p-6 space-y-10 pb-36 max-w-3xl mx-auto">
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-10 pb-36">
       <section className="rounded-[2.25rem] p-6 bg-gradient-to-br from-[#f6ded1] to-[#fef9f2] text-center border border-outline-variant/20">
         <div className="mx-auto relative w-fit mb-4">
           <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center text-4xl font-serif italic shadow-[0_10px_24px_rgba(150,68,7,0.25)]">

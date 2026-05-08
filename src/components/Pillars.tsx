@@ -555,7 +555,7 @@ const Pillars: React.FC<{ initialLayerId?: string | null }> = ({ initialLayerId 
               </div>
             </header>
 
-            <main className="pt-6 pb-28 px-4 sm:px-6 max-w-3xl mx-auto min-h-screen">
+            <main className="pt-6 pb-28 px-4 sm:px-6 w-full max-w-7xl mx-auto min-h-screen">
               <div className="mb-10 relative">
                 <div className={cn('absolute -left-3 top-0 w-1 h-12 rounded-full', layerColorClasses[activeLayer.id].stripe)} />
                 <h1 className="text-4xl font-serif font-bold tracking-tight text-on-surface mb-2">{activeLayer.name} Layer</h1>

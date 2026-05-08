@@ -75,19 +75,20 @@
           "focusAlarmSound": "Aggressive Bell",
           "bibleReminderTime": "06:30 AM",
           "bibleReminderAlarm": true,
-          "bibleReminderTelegram": true,
-          "revisionDefaultsApplied": false,
-          "telegramChatId": "7875504612",
+          "revisionDefaultsApplied": true,
           "customFocusSongName": "",
           "customFocusSongDataUrl": "",
           "customFocusPlaylistNames": [],
           "customFocusPlaylistDataUrls": [],
           "shuffleFocusPlaylist": false,
+          "googleCalendarEnabled": false,
           "notifications": {
             "taskReminders": true,
             "dailyScripture": true,
             "streakProtection": true
           },
+          "bibleReminderTelegram": true,
+          "telegramChatId": "7875504612",
           "mostRepeatedTasks": [
             {
               "name": "Plan top priorities and clear workspace|general",
@@ -99,6 +100,12 @@
               "name": "Read scripture day 1|spiritual",
               "layerId": "spiritual",
               "priority": "B",
+              "count": 1
+            },
+            {
+              "name": "Revision|academic",
+              "layerId": "academic",
+              "priority": "A",
               "count": 1
             },
             {
@@ -215,6 +222,19 @@
           "timeOfDay": "morning",
           "time": "03:25",
           "linkedTaskId": "habit-task-habit-1775960605372"
+        },
+        {
+          "id": "default-academic-revision-habit",
+          "name": "Revision",
+          "layerId": "academic",
+          "frequency": "daily",
+          "durationMinutes": 60,
+          "streak": 0,
+          "history": [],
+          "completedToday": false,
+          "timeOfDay": "evening",
+          "time": "19:00",
+          "linkedTaskId": "default-academic-revision-task"
         }
       ],
       "tasks": [
@@ -224,11 +244,22 @@
           "layerId": "spiritual",
           "priority": "B",
           "repeat": "daily",
-          "time": "06:30",
+          "time": "06:30 AM",
           "completed": false,
-          "date": "2026-04-12T07:17:19.902Z",
+          "date": "2026-05-08T12:52:59.327Z",
           "alarmEnabled": true,
           "preferredMusic": "Scripture Reflection"
+        },
+        {
+          "id": "default-academic-revision-task",
+          "name": "Revision",
+          "layerId": "academic",
+          "priority": "A",
+          "repeat": "daily",
+          "time": "19:00",
+          "completed": false,
+          "date": "2026-05-08T12:52:59.327Z",
+          "alarmEnabled": true
         },
         {
           "id": "task-1775959321669",
@@ -308,8 +339,8 @@
         "day": 1,
         "totalDays": 365,
         "highestCompletedDay": 0,
-        "passage": "Genesis 1; Psalm 1",
-        "text": "In the beginning God created the heavens and the earth...",
+        "passage": "John 1; Psalms 1",
+        "text": "Today's reading: John 1; Psalms 1",
         "completed": false,
         "currentStreak": 0,
         "lastCompletedDate": ""
@@ -573,5 +604,6 @@
   },
   "migrations": {
     "bible-reset-2026-04-13-r1": "2026-04-13T12:31:52.909Z"
-  }
+  },
+  "reminders": {}
 }
