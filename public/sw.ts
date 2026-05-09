@@ -233,3 +233,41 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+
+// Handle fetch events (required for PWA installability)
+self.addEventListener('fetch', (event: FetchEvent) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Let Workbox handle precached assets
+  // For other requests, use network-first strategy with cache fallback
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses for offline access
+        if (response && response.status === 200 && response.type !== 'error') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fall back to cache if network fails
+        return caches.match(event.request).then((response) => {
+          if (response) {
+            return response;
+          }
+          // Return offline page or default response
+          return new Response('Offline - Service Unavailable', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({ 'Content-Type': 'text/plain' }),
+          });
+        });
+      })
+  );
+});
