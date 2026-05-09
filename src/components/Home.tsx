@@ -757,6 +757,7 @@ const Home: React.FC = () => {
     };
 
     window.addEventListener('edenify:focus-task', handleFocusTask as EventListener);
+    window.addEventListener('edenify:open-search', handleOpenSearch as EventListener);
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', handleSwMessage as EventListener);
     }
@@ -769,6 +770,7 @@ const Home: React.FC = () => {
 
     return () => {
       window.removeEventListener('edenify:focus-task', handleFocusTask as EventListener);
+      window.removeEventListener('edenify:open-search', handleOpenSearch as EventListener);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleSwMessage as EventListener);
       }
@@ -2350,9 +2352,9 @@ const Home: React.FC = () => {
               exit={{ y: 16, opacity: 0 }}
               transition={{ type: 'spring', damping: 24, stiffness: 220 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-2xl overflow-hidden rounded-[2rem] bg-surface-container-low border border-outline-variant/25 shadow-[0_20px_50px_rgba(44,33,24,0.08)] p-5 sm:p-6 max-h-[90vh] overflow-y-auto no-scrollbar"
+              className="w-full max-w-4xl overflow-hidden rounded-[2rem] bg-surface-container-low border border-outline-variant/25 shadow-[0_20px_50px_rgba(44,33,24,0.08)] p-5 sm:p-6 max-h-[90vh] overflow-y-auto no-scrollbar"
             >
-              <div className="max-w-3xl mx-auto space-y-4">
+              <div className="w-full mx-auto space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-label text-[10px] uppercase tracking-[0.16em] text-outline font-bold">Quick Add Task</p>
