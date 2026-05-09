@@ -1063,6 +1063,15 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    // Serve the canonical bible plan directly from the workspace public folder
+    // to avoid any accidental concatenation from other asset locations.
+    app.get('/data/bible-plan.json', (_req, res) => {
+      try {
+        res.sendFile(path.join(process.cwd(), 'public', 'data', 'bible-plan.json'));
+      } catch (err) {
+        res.status(500).send('Could not load bible-plan.json');
+      }
+    });
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: false },
       appType: "spa",
