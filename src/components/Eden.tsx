@@ -41,6 +41,7 @@ import {
   getDailyBibleReading,
   type UserProfile,
 } from '../services/eden-agent';
+import { getTotalReadingDays } from '../services/bible';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, parseTaskDueDate } from '../lib/utils';
 import { LayerId, Task, Habit } from '../types';
@@ -748,9 +749,10 @@ const Eden: React.FC = () => {
 
     if (/\b(bible|scripture|reading|verse)\b/.test(lower) && /\b(today|day|plan|suggest)\b/.test(lower)) {
       void (async () => {
-        const day = Math.max(1, Math.min(365, Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % 365) + 1));
+        const total = await getTotalReadingDays();
+        const day = Math.max(1, Math.min(total, Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % total) + 1));
         const reading = await getDailyBibleReading(day);
-        addModelMessage(`Day ${day}/365 reading:\n${reading.passage}\n"${reading.text}"\n${reading.context}`);
+        addModelMessage(`Day ${day}/${total} reading:\n${reading.passage}\n"${reading.text}"\n${reading.context}`);
       })();
       return { handled: true, reply: 'I will prepare today spiritual reading now.' };
     }
@@ -770,9 +772,10 @@ const Eden: React.FC = () => {
 
     if (cmd === 'bible') {
       void (async () => {
-        const day = Math.max(1, Math.min(365, Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % 365) + 1));
+        const total = await getTotalReadingDays();
+        const day = Math.max(1, Math.min(total, Math.floor((Date.now() / (1000 * 60 * 60 * 24)) % total) + 1));
         const reading = await getDailyBibleReading(day);
-        addModelMessage(`Day ${day}/365 reading:\n${reading.passage}\n"${reading.text}"\n${reading.context}`);
+        addModelMessage(`Day ${day}/${total} reading:\n${reading.passage}\n"${reading.text}"\n${reading.context}`);
       })();
     }
 

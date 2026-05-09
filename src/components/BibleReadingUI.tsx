@@ -9,6 +9,7 @@ interface BibleReadingUIProps {
   onToggleComplete: (completed: boolean) => void;
   onReadMore?: () => void;
   isProgressionEnforced?: boolean;
+  totalDays?: number;
 }
 
 interface ReadingData {
@@ -22,6 +23,7 @@ export const BibleReadingUI: React.FC<BibleReadingUIProps> = ({
   onToggleComplete,
   onReadMore,
   isProgressionEnforced = true,
+  totalDays,
 }) => {
   const [reading, setReading] = useState<ReadingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export const BibleReadingUI: React.FC<BibleReadingUIProps> = ({
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] font-bold text-primary mb-1">
-              Day {reading?.day} of 365
+              Day {reading?.day} of {totalDays || 365}
             </p>
             <h3 className="text-sm font-bold text-on-surface">Today's Scripture</h3>
           </div>

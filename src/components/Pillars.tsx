@@ -672,6 +672,7 @@ const Pillars: React.FC<{ initialLayerId?: string | null }> = ({ initialLayerId 
                         void completeBibleDay(completed);
                       }}
                       isProgressionEnforced={true}
+                      totalDays={bibleReading.totalDays}
                     />
                   </section>
 

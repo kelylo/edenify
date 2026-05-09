@@ -247,7 +247,7 @@ export async function getBibleReadingForDay(day: number): Promise<BibleDayReadin
     };
   }
 
-  const totalDays = 365;
+  const totalDays = await getTotalReadingDays();
   const safeDay = Math.min(totalDays, Math.max(1, day));
   const totalVerses = verses.length;
   const baseChunk = Math.floor(totalVerses / totalDays);

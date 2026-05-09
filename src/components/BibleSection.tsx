@@ -63,6 +63,7 @@ export const BibleSection: React.FC<BibleSectionProps> = ({
             onToggleComplete={onToggleComplete}
             onReadMore={() => readerActions.setShowScripturePage(true)}
             isProgressionEnforced={true}
+            totalDays={bibleReading.totalDays}
           />
         ) : (
           <div className="text-center py-4">

@@ -32,7 +32,7 @@ const appKnowledge = [
   'Profile has notification preferences, Bible reminder settings, and avatar settings.',
   'Layers screen has habits, guide cards, and suggestions that can become tasks.',
   'Focus supports ambient sounds and completion alarm selection/upload.',
-  'Bible reading plan spans 365 days with local progression fallback.',
+  'Bible reading plan spans a configurable number of days with local progression fallback.',
   'Prefer backend AI responses when available; local responses are failover when API is unavailable.',
 ];
 
@@ -2193,7 +2193,7 @@ const linkedBibleThemeBridge: Record<string, string[]> = {
 };
 
 function localBibleFallback(day: number) {
-  const safeDay = Math.max(1, Math.min(365, Math.floor(day || 1)));
+  const safeDay = Math.max(1, Math.floor(day || 1));
   const segmentLength = 10;
   const segment = Math.floor((safeDay - 1) / segmentLength);
   const offset = (safeDay - 1) % segmentLength;
@@ -2204,8 +2204,8 @@ function localBibleFallback(day: number) {
   const bridges = linkedBibleThemeBridge[core.theme] || [];
   const bridge = bridges.length > 0 ? bridges[(segment + offset) % bridges.length] : core.passage;
 
-  // Deterministic linking note creates non-linear but coherent 365-day traversal.
-  const context = `Day ${safeDay}/365 links ${core.theme} across Scripture: core reading in ${core.passage}, then trace the same motif in ${bridge}. ${core.context}`;
+  // Deterministic linking note creates a coherent traversal across the linked timeline.
+  const context = `Day ${safeDay} links ${core.theme} across Scripture: core reading in ${core.passage}, then trace the same motif in ${bridge}. ${core.context}`;
 
   return {
     passage: `${core.passage} + linked: ${bridge}`,

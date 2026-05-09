@@ -2039,6 +2039,7 @@ const Home: React.FC = () => {
                   bibleReaderActions.setShowScripturePage(true);
                 }}
                 isProgressionEnforced={true}
+                totalDays={bibleReading.totalDays}
               />
             </div>
           </div>
