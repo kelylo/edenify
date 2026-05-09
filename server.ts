@@ -224,7 +224,7 @@ function buildSessionCookie(req: express.Request, sessionId: string) {
 }
 
 
-const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+const geminiModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
 
 function hasGeminiKeys() {
@@ -279,6 +279,7 @@ async function generateWithServerGemini(prompt: {
   tools?: any[];
 }) {
   const keys = getGeminiKeyOrder();
+  if (!keys.length) return null;
   let lastError: unknown;
 
   for (const model of geminiModels) {
@@ -304,7 +305,9 @@ async function generateWithServerGemini(prompt: {
     }
   }
 
-  if (lastError) throw lastError;
+  if (lastError) {
+    console.warn('[Gemini] Falling back after server generation failure:', lastError);
+  }
   return null;
 }
 
@@ -522,8 +525,14 @@ async function startServer() {
       });
 
       const suggestion = raw ? parseJsonSafely<{ name: string; time: string; preferredMusic: string }>(raw) : null;
-      if (!suggestion.preferredMusic && preferredMusicHint) suggestion.preferredMusic = preferredMusicHint;
-      res.json({ success: true, suggestion });
+      const fallbackSuggestion = {
+        name: `${layer[0]?.toUpperCase?.() || 'G'}-layer focus block`,
+        time: preferredTime,
+        preferredMusic: preferredMusicHint || '',
+      };
+      const safeSuggestion = suggestion || fallbackSuggestion;
+      if (!safeSuggestion.preferredMusic && preferredMusicHint) safeSuggestion.preferredMusic = preferredMusicHint;
+      res.json({ success: true, suggestion: safeSuggestion });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error?.message || 'Could not suggest task.' });
     }
